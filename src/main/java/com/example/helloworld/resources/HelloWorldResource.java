@@ -94,14 +94,20 @@ public class HelloWorldResource {
         Connection conn = Database.getConnection();
         long id = saying.getId();
         String content = saying.getContent();
-        String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
 
-        PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
+        if (get(id) == null) {
+            String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
 
-        preparedStatement.setInt(1, (int) id);
-        preparedStatement.setString(2, content);
+            PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
 
-        preparedStatement.execute();
+            preparedStatement.setInt(1, (int) id);
+            preparedStatement.setString(2, content);
+
+            preparedStatement.execute();
+        } else {
+            System.out.println("[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!");
+        }
+
     }
 
     /**
@@ -111,7 +117,7 @@ public class HelloWorldResource {
      * @param id
      */
     @DELETE
-    @Path("/fortunes/{id}")
+    //@Path("/fortunes/{id}")
     public void deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
         if (id.isPresent()) {
             LOGGER.info("delete object with id:=" + id.get());
@@ -120,17 +126,41 @@ public class HelloWorldResource {
             // Get database connection
             Connection conn = Database.getConnection();
 
-            String deleteQuery = "delete from fortune where id=?";
+            if (get(Integer.parseInt(id.get())) != null) {
+                String deleteQuery = "delete from fortune where id=?";
 
-            PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
+                PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
 
-            preparedStatement.setInt(1, Integer.parseInt(id.get()));
-            //preparedStatement.setInt(1, Integer.parseInt(id));
+                preparedStatement.setInt(1, Integer.parseInt(id.get()));
 
-            preparedStatement.execute();
-
+                preparedStatement.execute();
+            } else {
+                System.out.println("[FAIL] Delete data FAILED! This ID is not in the database!");
+            }
         } else {
             LOGGER.info("delete. id not supplied");
         }
+    }
+
+    private String get(long id) throws SQLException {
+        // Get database connection
+        Connection conn = Database.getConnection();
+
+        // Execute a query
+        System.out.println("Creating statement...");
+
+        Statement stmt;
+        stmt = conn.createStatement();
+        String sql = "SELECT * from fortune where id=" + id;
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while(rs.next()){
+            //Retrieve by column name
+            String outputContent = rs.getString("content");
+
+            System.out.print(", Content: " + outputContent);
+            return outputContent;
+        }
+        return null;
     }
 }

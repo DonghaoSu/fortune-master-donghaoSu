@@ -39,4 +39,12 @@ public class Database {
     public static Connection getConnection(){
         return conn;
     }
+
+    public boolean isConnected() {
+        return conn != null;
+    }
+
+    public String getUrl() {
+        return DB_URL;
+    }
 }

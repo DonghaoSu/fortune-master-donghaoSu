@@ -1,5 +1,7 @@
 package com.example.helloworld;
 
+import com.example.helloworld.resources.Database;
+import com.example.helloworld.resources.DatabaseHealthCheck;
 import com.example.helloworld.resources.HelloWorldResource;
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -34,5 +36,6 @@ public class HelloWorldApplication extends Application<HelloWorldConfiguration> 
     public void run(HelloWorldConfiguration configuration, Environment environment) {
 
         environment.jersey().register(new HelloWorldResource());
+        environment.healthChecks().register("database", new DatabaseHealthCheck(new Database()));
     }
 }
