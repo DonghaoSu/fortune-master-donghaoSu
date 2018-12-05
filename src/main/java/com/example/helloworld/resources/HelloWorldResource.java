@@ -1,11 +1,13 @@
 package com.example.helloworld.resources;
 
+import io.dropwizard.jersey.errors.ErrorMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.sql.*;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -87,7 +89,7 @@ public class HelloWorldResource {
      * @param saying Note for HTTP POST, the payload data above are parsed into the `saying` method parameter below.
      */
     @POST
-    public void receiveHello(@Valid Saying saying) throws SQLException{
+    public Response receiveHello(@Valid Saying saying) throws SQLException{
         LOGGER.info("Received a saying: {}\n\n", saying);
 
         // Get database connection
@@ -95,7 +97,8 @@ public class HelloWorldResource {
         long id = saying.getId();
         String content = saying.getContent();
 
-        if (get(id) == null) {
+        Saying item = get(id);
+        if (item == null) {
             String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
 
             PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
@@ -104,10 +107,21 @@ public class HelloWorldResource {
             preparedStatement.setString(2, content);
 
             preparedStatement.execute();
-        } else {
-            System.out.println("[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!");
-        }
 
+            return Response
+                    .status(202)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .entity(new Saying(id, content))
+                    .build();
+
+        } else {
+            return Response
+                    .status(404)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .entity(new ErrorMessage(404,
+                            "[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!"))
+                    .build();
+        }
     }
 
     /**
@@ -118,7 +132,7 @@ public class HelloWorldResource {
      */
     @DELETE
     //@Path("/fortunes/{id}")
-    public void deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
+    public Response deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
         if (id.isPresent()) {
             LOGGER.info("delete object with id:=" + id.get());
             System.out.println("delete object with id:=" + id.get());
@@ -126,7 +140,8 @@ public class HelloWorldResource {
             // Get database connection
             Connection conn = Database.getConnection();
 
-            if (get(Integer.parseInt(id.get())) != null) {
+            Saying item = get(Integer.parseInt(id.get()));
+            if (item != null) {
                 String deleteQuery = "delete from fortune where id=?";
 
                 PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
@@ -134,15 +149,33 @@ public class HelloWorldResource {
                 preparedStatement.setInt(1, Integer.parseInt(id.get()));
 
                 preparedStatement.execute();
+
+                return Response
+                        .status(202)
+                        .type(MediaType.APPLICATION_JSON_TYPE)
+                        .entity(item)
+                        .build();
+
             } else {
-                System.out.println("[FAIL] Delete data FAILED! This ID is not in the database!");
+                return Response
+                        .status(404)
+                        .type(MediaType.APPLICATION_JSON_TYPE)
+                        .entity(new ErrorMessage(404,
+                                "[FAIL] Delete data FAILED! This ID is not in the database!"))
+                        .build();
             }
         } else {
             LOGGER.info("delete. id not supplied");
+            return Response
+                    .status(404)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .entity(new ErrorMessage(404,
+                            "[FAIL] Delete data FAILED! This ID is not supplied!"))
+                    .build();
         }
     }
 
-    private String get(long id) throws SQLException {
+    private Saying get(long id) throws SQLException {
         // Get database connection
         Connection conn = Database.getConnection();
 
@@ -156,10 +189,11 @@ public class HelloWorldResource {
 
         while(rs.next()){
             //Retrieve by column name
+            int outputId  = rs.getInt("id");
             String outputContent = rs.getString("content");
 
             System.out.print(", Content: " + outputContent);
-            return outputContent;
+            return new Saying(outputId, outputContent);
         }
         return null;
     }
