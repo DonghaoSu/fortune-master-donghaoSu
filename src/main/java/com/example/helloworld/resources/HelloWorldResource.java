@@ -12,7 +12,7 @@ import java.sql.*;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Path("/hello-world") // This is where the HTTP URL path is set
+@Path("/") // This is where the HTTP URL path is set
 @Produces(MediaType.APPLICATION_JSON)
 public class HelloWorldResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(HelloWorldResource.class);
@@ -36,7 +36,7 @@ public class HelloWorldResource {
      * @return
      */
     @GET
-    @Path("/fortune")
+    @Path("fortune")
     public String sayHello(@QueryParam("name") Optional<String> name) {
 
         try{
@@ -124,7 +124,7 @@ public class HelloWorldResource {
 //    }
 
     @POST
-    @Path("/fortunes/{msg}")
+    @Path("{msg}")
     public Response receiveHello(@PathParam("msg") String msg) throws SQLException{
 
         // Get database connection
@@ -179,49 +179,81 @@ public class HelloWorldResource {
      * @param id
      */
     @DELETE
-    //@Path("/fortunes/{id}")
-    public Response deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
-        if (id.isPresent()) {
-            LOGGER.info("delete object with id:=" + id.get());
-            System.out.println("delete object with id:=" + id.get());
+    @Path("fortunes/{id}")
+    public Response deleteIt(@PathParam("id") long id) throws SQLException {
+        // Get database connection
+        Connection conn = Database.getConnection();
 
-            // Get database connection
-            Connection conn = Database.getConnection();
+        Saying item = get(id);
+        if (item != null) {
+            String deleteQuery = "delete from fortune where id=?";
 
-            Saying item = get(Integer.parseInt(id.get()));
-            if (item != null) {
-                String deleteQuery = "delete from fortune where id=?";
+            PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
 
-                PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
+            preparedStatement.setLong(1, id);
 
-                preparedStatement.setInt(1, Integer.parseInt(id.get()));
+            preparedStatement.execute();
 
-                preparedStatement.execute();
+            return Response
+                    .status(202)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .entity(item)
+                    .build();
 
-                return Response
-                        .status(204)
-                        .type(MediaType.APPLICATION_JSON_TYPE)
-                        .entity(item)
-                        .build();
-
-            } else {
-                return Response
-                        .status(404)
-                        .type(MediaType.APPLICATION_JSON_TYPE)
-                        .entity(new ErrorMessage(404,
-                                "[FAIL] Delete data FAILED! This ID is not in the database!"))
-                        .build();
-            }
         } else {
-            LOGGER.info("delete. id not supplied");
             return Response
                     .status(404)
                     .type(MediaType.APPLICATION_JSON_TYPE)
                     .entity(new ErrorMessage(404,
-                            "[FAIL] Delete data FAILED! This ID is not supplied!"))
+                            "[FAIL] Delete data FAILED! This ID is not in the database!"))
                     .build();
         }
+
     }
+
+//    @DELETE
+//    public Response deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
+//        if (id.isPresent()) {
+//            LOGGER.info("delete object with id:=" + id.get());
+//            System.out.println("delete object with id:=" + id.get());
+//
+//            // Get database connection
+//            Connection conn = Database.getConnection();
+//
+//            Saying item = get(Integer.parseInt(id.get()));
+//            if (item != null) {
+//                String deleteQuery = "delete from fortune where id=?";
+//
+//                PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
+//
+//                preparedStatement.setInt(1, Integer.parseInt(id.get()));
+//
+//                preparedStatement.execute();
+//
+//                return Response
+//                        .status(204)
+//                        .type(MediaType.APPLICATION_JSON_TYPE)
+//                        .entity(item)
+//                        .build();
+//
+//            } else {
+//                return Response
+//                        .status(404)
+//                        .type(MediaType.APPLICATION_JSON_TYPE)
+//                        .entity(new ErrorMessage(404,
+//                                "[FAIL] Delete data FAILED! This ID is not in the database!"))
+//                        .build();
+//            }
+//        } else {
+//            LOGGER.info("delete. id not supplied");
+//            return Response
+//                    .status(404)
+//                    .type(MediaType.APPLICATION_JSON_TYPE)
+//                    .entity(new ErrorMessage(404,
+//                            "[FAIL] Delete data FAILED! This ID is not supplied!"))
+//                    .build();
+//        }
+//    }
 
     private Saying get(long id) throws SQLException {
         // Get database connection
@@ -240,7 +272,6 @@ public class HelloWorldResource {
             int outputId  = rs.getInt("id");
             String outputContent = rs.getString("content");
 
-            System.out.print(", Content: " + outputContent);
             return new Saying(outputId, outputContent);
         }
         return null;
