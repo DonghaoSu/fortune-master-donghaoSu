@@ -43,4 +43,11 @@ To test the example application run the following commands.
 * Look at this line: (This is where the entry point of the jar is specified.)
         https://github.com/borderxlab/fortune/blob/master/pom.xml#L181
 
-
+*To GET a random fortune
+	curl -XGET localhost:8080/fortune
+	
+*To POST a fotune
+	curl -XPOST localhost:8080/{YOUR POST CONTENT}
+	
+*To DELETE a fortune
+	curl -XDELETE localhost:8080/cortunes/{THE ID OF THE FORTUNE THAT YOUR WANT TO DELETE}
