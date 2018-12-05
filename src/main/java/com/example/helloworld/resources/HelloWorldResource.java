@@ -46,7 +46,7 @@ public class HelloWorldResource {
 
             Statement stmt = conn.createStatement();
             String sql;
-            sql = "SELECT * from fortune";
+            sql = "SELECT * from fortune order by RAND() LIMIT 1";
             ResultSet rs = stmt.executeQuery(sql);
 
             // Extract data from result set
@@ -75,7 +75,6 @@ public class HelloWorldResource {
             e.printStackTrace();
         }
 
-        System.out.println("Goodbye!");
         return new Saying(counter.incrementAndGet(), name.isPresent() ? "Hello: " + name.get() : "Hello: jason");
     }
 
@@ -93,7 +92,16 @@ public class HelloWorldResource {
 
         // Get database connection
         Connection conn = Database.getConnection();
+        long id = saying.getId();
+        String content = saying.getContent();
+        String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
 
+        PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
+
+        preparedStatement.setInt(1, (int) id);
+        preparedStatement.setString(2, content);
+
+        preparedStatement.execute();
     }
 
     /**
@@ -103,10 +111,24 @@ public class HelloWorldResource {
      * @param id
      */
     @DELETE
-    public void deleteIt(@QueryParam("id") Optional<String> id) {
+    @Path("/fortunes/{id}")
+    public void deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
         if (id.isPresent()) {
             LOGGER.info("delete object with id:=" + id.get());
             System.out.println("delete object with id:=" + id.get());
+
+            // Get database connection
+            Connection conn = Database.getConnection();
+
+            String deleteQuery = "delete from fortune where id=?";
+
+            PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
+
+            preparedStatement.setInt(1, Integer.parseInt(id.get()));
+            //preparedStatement.setInt(1, Integer.parseInt(id));
+
+            preparedStatement.execute();
+
         } else {
             LOGGER.info("delete. id not supplied");
         }
