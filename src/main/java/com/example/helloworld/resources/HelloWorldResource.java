@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class HelloWorldResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(HelloWorldResource.class);
 
-
-
     private final AtomicLong counter;
 
     private int outputId;
@@ -27,6 +25,7 @@ public class HelloWorldResource {
         this.counter = new AtomicLong();
     }
 
+    private long idOffset;
     /**
      * HTTP GET
      * invoke by:
@@ -37,7 +36,8 @@ public class HelloWorldResource {
      * @return
      */
     @GET
-    public Saying sayHello(@QueryParam("name") Optional<String> name) {
+    @Path("/fortune")
+    public String sayHello(@QueryParam("name") Optional<String> name) {
 
         try{
             // Get database connection
@@ -55,14 +55,14 @@ public class HelloWorldResource {
 
             while(rs.next()){
                 //Retrieve by column name
-                int outputId  = rs.getInt("id");
+                long outputId  = rs.getLong("id");
                 String outputContent = rs.getString("content");
 
 
                 //Display values
                 System.out.print("ID: " + outputId);
                 System.out.print(", Content: " + outputContent);
-                return new Saying(outputId, outputContent);
+                return outputContent;
             }
 
             // Clean-up environment
@@ -76,8 +76,8 @@ public class HelloWorldResource {
             //Handle errors for Class.forName
             e.printStackTrace();
         }
-
-        return new Saying(counter.incrementAndGet(), name.isPresent() ? "Hello: " + name.get() : "Hello: jason");
+        return null;
+        //return new Saying(counter.incrementAndGet(), name.isPresent() ? "Hello: " + name.get() : "Hello: jason");
     }
 
     /**
@@ -88,32 +88,79 @@ public class HelloWorldResource {
      *
      * @param saying Note for HTTP POST, the payload data above are parsed into the `saying` method parameter below.
      */
+//    public Response receiveHello(@Valid Saying saying) throws SQLException{
+//        LOGGER.info("Received a saying: {}\n\n", saying);
+//
+//        // Get database connection
+//        Connection conn = Database.getConnection();
+//        long id = saying.getId();
+//        String content = saying.getContent();
+//
+//        Saying item = get(id);
+//        if (item == null) {
+//            String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
+//
+//            PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
+//
+//            preparedStatement.setInt(1, (int) id);
+//            preparedStatement.setString(2, content);
+//
+//            preparedStatement.execute();
+//
+//            return Response
+//                    .status(201)
+//                    .type(MediaType.APPLICATION_JSON_TYPE)
+//                    .entity(new Saying(id, content))
+//                    .build();
+//
+//        } else {
+//            return Response
+//                    .status(404)
+//                    .type(MediaType.APPLICATION_JSON_TYPE)
+//                    .entity(new ErrorMessage(404,
+//                            "[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!"))
+//                    .build();
+//        }
+//    }
+
     @POST
-    public Response receiveHello(@Valid Saying saying) throws SQLException{
-        LOGGER.info("Received a saying: {}\n\n", saying);
+    @Path("/fortunes/{msg}")
+    public Response receiveHello(@PathParam("msg") String msg) throws SQLException{
 
         // Get database connection
         Connection conn = Database.getConnection();
-        long id = saying.getId();
-        String content = saying.getContent();
 
-        Saying item = get(id);
-        if (item == null) {
-            String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
+        // Find the largest id in database
+        Statement stmt = conn.createStatement();
+        String sql;
+        sql = "SELECT * from fortune WHERE id=(\n" +
+                "    SELECT max(id) FROM fortune\n" +
+                "    )";
+        ResultSet rs = stmt.executeQuery(sql);
 
-            PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
+        while(rs.next()) {
+            //Retrieve by column name
+            idOffset = rs.getLong("id") % Long.MAX_VALUE;
+        }
 
-            preparedStatement.setInt(1, (int) id);
-            preparedStatement.setString(2, content);
+        String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
+
+        PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
+
+
+        long tempId = counter.incrementAndGet() + idOffset;
+
+        if (get(tempId) == null) {
+            preparedStatement.setInt(1, (int) tempId);
+            preparedStatement.setString(2, msg);
 
             preparedStatement.execute();
 
             return Response
-                    .status(202)
+                    .status(201)
                     .type(MediaType.APPLICATION_JSON_TYPE)
-                    .entity(new Saying(id, content))
+                    .entity(new Saying(tempId, msg))
                     .build();
-
         } else {
             return Response
                     .status(404)
@@ -122,6 +169,7 @@ public class HelloWorldResource {
                             "[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!"))
                     .build();
         }
+
     }
 
     /**
@@ -151,7 +199,7 @@ public class HelloWorldResource {
                 preparedStatement.execute();
 
                 return Response
-                        .status(202)
+                        .status(204)
                         .type(MediaType.APPLICATION_JSON_TYPE)
                         .entity(item)
                         .build();
