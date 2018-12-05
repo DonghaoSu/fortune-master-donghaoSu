@@ -88,41 +88,6 @@ public class HelloWorldResource {
      *
      * @param saying Note for HTTP POST, the payload data above are parsed into the `saying` method parameter below.
      */
-//    public Response receiveHello(@Valid Saying saying) throws SQLException{
-//        LOGGER.info("Received a saying: {}\n\n", saying);
-//
-//        // Get database connection
-//        Connection conn = Database.getConnection();
-//        long id = saying.getId();
-//        String content = saying.getContent();
-//
-//        Saying item = get(id);
-//        if (item == null) {
-//            String postQuery = "INSERT INTO fortune(id, content) VALUES (" + "?,?)";
-//
-//            PreparedStatement preparedStatement = conn.prepareStatement(postQuery);
-//
-//            preparedStatement.setInt(1, (int) id);
-//            preparedStatement.setString(2, content);
-//
-//            preparedStatement.execute();
-//
-//            return Response
-//                    .status(201)
-//                    .type(MediaType.APPLICATION_JSON_TYPE)
-//                    .entity(new Saying(id, content))
-//                    .build();
-//
-//        } else {
-//            return Response
-//                    .status(404)
-//                    .type(MediaType.APPLICATION_JSON_TYPE)
-//                    .entity(new ErrorMessage(404,
-//                            "[FAIL] Insert data FAILED! The ID that you trying to insert is already in the database!"))
-//                    .build();
-//        }
-//    }
-
     @POST
     @Path("{msg}")
     public Response receiveHello(@PathParam("msg") String msg) throws SQLException{
@@ -210,50 +175,6 @@ public class HelloWorldResource {
         }
 
     }
-
-//    @DELETE
-//    public Response deleteIt(@QueryParam("id") Optional<String> id) throws SQLException {
-//        if (id.isPresent()) {
-//            LOGGER.info("delete object with id:=" + id.get());
-//            System.out.println("delete object with id:=" + id.get());
-//
-//            // Get database connection
-//            Connection conn = Database.getConnection();
-//
-//            Saying item = get(Integer.parseInt(id.get()));
-//            if (item != null) {
-//                String deleteQuery = "delete from fortune where id=?";
-//
-//                PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery);
-//
-//                preparedStatement.setInt(1, Integer.parseInt(id.get()));
-//
-//                preparedStatement.execute();
-//
-//                return Response
-//                        .status(204)
-//                        .type(MediaType.APPLICATION_JSON_TYPE)
-//                        .entity(item)
-//                        .build();
-//
-//            } else {
-//                return Response
-//                        .status(404)
-//                        .type(MediaType.APPLICATION_JSON_TYPE)
-//                        .entity(new ErrorMessage(404,
-//                                "[FAIL] Delete data FAILED! This ID is not in the database!"))
-//                        .build();
-//            }
-//        } else {
-//            LOGGER.info("delete. id not supplied");
-//            return Response
-//                    .status(404)
-//                    .type(MediaType.APPLICATION_JSON_TYPE)
-//                    .entity(new ErrorMessage(404,
-//                            "[FAIL] Delete data FAILED! This ID is not supplied!"))
-//                    .build();
-//        }
-//    }
 
     private Saying get(long id) throws SQLException {
         // Get database connection
